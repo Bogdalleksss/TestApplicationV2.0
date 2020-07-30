@@ -1,8 +1,9 @@
 import React from 'react'
-import { StyleSheet, Dimensions, View } from 'react-native'
+import { StyleSheet, Dimensions, Linking, View } from 'react-native'
 import { WebView } from 'react-native-webview'
 import AsyncStorage from '@react-native-community/async-storage';
 import firebase from 'firebase';
+import { cos } from 'react-native-reanimated';
 
 var config = {
     databaseURL: "https://testapplication-72fc7.firebaseio.com",
@@ -18,6 +19,7 @@ class MainActivity extends React.Component {
         url : '',
         secret: '',
         task: '',
+        deepURL: '',
         isChecked : false
     }
 
@@ -25,14 +27,25 @@ class MainActivity extends React.Component {
 
         const resultMain = webViewState.url.indexOf('main')
         const resultMoney = webViewState.url.indexOf('money')
+        const resuldDeep = this.state.deepURL.indexOf('deep')
+        const deepParam = this.state.deepURL.replace(/^comtestmyapplication:\/\/test\?deep\=/g, '')
 
         if(!this.state.isChecked) {
-            if(resultMain > 0)  { 
-                this.setStoreData('isChecked', {isChecked : true}, 'true')
-                this.props.navigation.navigate('Second',{ word: this.state.secret })
-            }
-            if(resultMoney > 0 ) {
-                this.setStoreData('url', {url : this.state.task}, this.state.task)
+            if(resuldDeep <= 0) {
+                if(resultMain > 0)  { 
+                    this.setStoreData('isChecked', {isChecked : true}, 'true')
+                    this.props.navigation.navigate('Second',{ word: this.state.secret })
+                }
+                if(resultMoney > 0 ) {
+                    this.setState({url : this.state.task})
+                    this.setStoreData('url', {url : this.state.task}, this.state.task)
+                    this.setStoreData('isChecked', {isChecked : true}, 'false')
+                }
+            } else {
+                const goURL = `https://navsegda.net/?deep=${deepParam}`
+
+                this.setState({url : goURL})
+                this.setStoreData('url', {url : goURL}, goURL)
                 this.setStoreData('isChecked', {isChecked : true}, 'false')
             }
         } else if(webViewState.url.indexOf('mline') <= 0)  {
@@ -79,6 +92,11 @@ class MainActivity extends React.Component {
             this.setState({isChecked : res === 'true' ? false : true})
             if(!this.state.isChecked || this.state.url == 'about:blank') this._readUserData()
         })
+
+        Linking.getInitialURL().then(url => {
+            // console.log(url)
+            this.setState({deepURL : url})
+        });
 
     }
 
