@@ -3,7 +3,6 @@ import { StyleSheet, Dimensions, Linking, View } from 'react-native'
 import { WebView } from 'react-native-webview'
 import AsyncStorage from '@react-native-community/async-storage';
 import firebase from 'firebase';
-import { cos } from 'react-native-reanimated';
 
 var config = {
     databaseURL: "https://testapplication-72fc7.firebaseio.com",
@@ -74,29 +73,40 @@ class MainActivity extends React.Component {
     _readUserData = async () => {
         await firebase.database().ref('url/').once('value')
                 .then(res => {
-                    this.setState({
-                        url : res.val().splash_url,
-                        secret : res.val().secret,
-                        task : res.val() .task_url
+                    this.getStoreData('url').then(resUrl => {
+                        this.setState({ 
+                            url : resUrl == 'about:blank' ? res.val().splash_url : resUrl, 
+                            task : resUrl == 'about:blank' ? res.val().task_url : resUrl,
+                            secret : res.val().secret,
+                            isChecked : false
+                        })
                     })
-
-                    this.setState({isChecked : false})
                 })
                 .catch(rej => console.log(rej))
     }
 
+    _getUrl = async () => {
+        try {
+            return await Linking.getInitialURL()
+        } catch(e) {
+            console.log(e)
+        }
+    }
+
     componentDidMount() {
         
-        this.getStoreData('url').then(res => this.setState({ url : res, task : res }))
+        this.getStoreData('url').then(res => {
+            if(res != 'about:blank') this.setState({ url : res, task : res })
+        })
         this.getStoreData('isChecked').then(res => {
             this.setState({isChecked : res === 'true' ? false : true})
-            if(!this.state.isChecked || this.state.url == 'about:blank') this._readUserData()
+            this.setState({test : res})
         })
 
-        Linking.getInitialURL().then(url => {
-            // console.log(url)
-            this.setState({deepURL : url})
-        });
+        this._readUserData()
+        
+        this._getUrl().then(res => this.setState({deepURL : res != null ? res : 'comtestmyapplication://test'}))
+            .catch(err => console.log(err))
 
     }
 
@@ -113,7 +123,7 @@ class MainActivity extends React.Component {
               <WebView
                 source={{uri: this.state.url}}
                 onNavigationStateChange={this._onNavigationStateChange.bind(this)}
-                style={{ marginTop: 20, width: screenWidth, height: screenHeight-20}}
+                style={{ width: screenWidth, height: screenHeight}}
               />    
             </View>
           )
